@@ -96,5 +96,21 @@ async def delete_transaction(user_id: str, transaction_id: int, db: Session = De
     db.commit()
     return {"message": "Transaction deleted successfully"}
 
+@app.get("/transactions/{user_id}/{start_date}/{end_date}/", response_model=list[TransactionOut])
+async def get_transactions_by_period(user_id: str, start_date: str, 
+                                     end_date: str, db: Session = Depends(get_db)):
+    metadata = MetaData()
+    Transaction = get_user_transaction_table(user_id, metadata)
+
+    # Если таблица не существует, то возвращаем ошибку
+    if not inspect(engine).has_table(Transaction.__tablename__):
+        raise HTTPException(status_code=404, detail="No transactions found for this user")
+
+    transactions = db.query(Transaction).filter(
+        Transaction.date >= start_date, Transaction.date <= end_date).all()
+    transactions = sorted(transactions, key=lambda x: x.date)
+
+    return transactions
+
 if __name__ == "__main__":
     uvicorn.run(app, port=8000)
