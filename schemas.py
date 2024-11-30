@@ -20,7 +20,7 @@ class TransactionType(str, Enum):
     income = "income"
     expense = "expense"
 
-# Pydantic схема для добавления транзакции
+# Схема для добавления транзакции
 class TransactionCreate(BaseModel):
     date: date
     type: TransactionType
@@ -32,9 +32,9 @@ class TransactionCreate(BaseModel):
     class Config:
         from_attributes = True
 
-# Pydantic схема для транзакции (для вывода)
+# Схема для вывода транзакции
 class TransactionOut(TransactionCreate):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True

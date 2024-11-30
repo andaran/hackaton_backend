@@ -79,5 +79,22 @@ async def get_transactions(user_id: str, db: Session = Depends(get_db)):
     transactions = db.query(Transaction).all()
     return transactions
 
+@app.delete("/transactions/{user_id}/{transaction_id}/")
+async def delete_transaction(user_id: str, transaction_id: int, db: Session = Depends(get_db)):
+    metadata = MetaData()
+    Transaction = get_user_transaction_table(user_id, metadata)
+
+    # Если таблица не существует, то возвращаем ошибку
+    if not inspect(engine).has_table(Transaction.__tablename__):
+        raise HTTPException(status_code=404, detail="No transactions found for this user")
+
+    db_transaction = db.query(Transaction).filter(Transaction.id == transaction_id).first()
+    if db_transaction is None:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+
+    db.delete(db_transaction)
+    db.commit()
+    return {"message": "Transaction deleted successfully"}
+
 if __name__ == "__main__":
     uvicorn.run(app, port=8000)
