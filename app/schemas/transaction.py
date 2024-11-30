@@ -3,18 +3,6 @@ from datetime import date
 from enum import Enum
 from typing import Optional
 
-class UserCreate(BaseModel):
-    email: str
-    password: str
-    name: str
-
-class UserLogin(BaseModel):
-    email: str
-    password: str
-
-    class Config:
-        from_attributes = True
-
 # Перечисление для типа транзакции
 class TransactionType(str, Enum):
     income = "income"

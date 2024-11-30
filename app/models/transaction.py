@@ -4,22 +4,11 @@ import enum
 
 Base = declarative_base()
 
-class User(Base):
-    __tablename__ = "users"
-
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String(100), unique=True, index=True)
-    password = Column(String(255))
-    name = Column(String(255))
-
 class TransactionType(enum.Enum):
     income = "income"
     expense = "expense"
 
 def get_user_transaction_table(user_id: str, metadata: MetaData):
-    """
-    Динамическая генерация таблицы транзакций для каждого пользователя
-    """
     class Transaction(Base):
         __tablename__ = f"transactions_{user_id}"
         __table__ = Table(
