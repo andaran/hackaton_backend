@@ -1,10 +1,10 @@
 from fastapi import HTTPException, Depends, APIRouter
 from sqlalchemy.orm import Session
 from sqlalchemy import MetaData, inspect
-from app.models.user import User
-from app.models.transaction import get_user_transaction_table
-from app.database import get_db, engine
-from app.schemas.transaction import TransactionCreate, TransactionOut
+from models.user import User
+from models.transaction import get_user_transaction_table
+from database import get_db, engine
+from schemas.transaction import TransactionCreate, TransactionOut
 from sqlalchemy import desc
 
 router = APIRouter()

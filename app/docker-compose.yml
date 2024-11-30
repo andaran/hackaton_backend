@@ -1,0 +1,15 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: backend
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    extra_hosts:
+      - host.docker.internal:host-gateway
+
+networks:
+  backend_network:
+    external: true
