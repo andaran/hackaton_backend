@@ -5,6 +5,7 @@ from app.models.user import User
 from app.models.transaction import get_user_transaction_table
 from app.database import get_db, engine
 from app.schemas.transaction import TransactionCreate, TransactionOut
+from sqlalchemy import desc
 
 router = APIRouter()
 
@@ -49,7 +50,7 @@ async def get_transactions(user_id: str, db: Session = Depends(get_db)):
     if not inspect(engine).has_table(Transaction.__tablename__):
         raise HTTPException(status_code=404, detail="No transactions found for this user")
 
-    transactions = db.query(Transaction).all()
+    transactions = db.query(Transaction).order_by(desc(Transaction.date)).all()
     return transactions
 
 @router.delete("/{user_id}/{transaction_id}/")
@@ -80,7 +81,8 @@ async def get_transactions_by_period(user_id: str, start_date: str,
         raise HTTPException(status_code=404, detail="No transactions found for this user")
 
     transactions = db.query(Transaction).filter(
-        Transaction.date >= start_date, Transaction.date <= end_date).all()
-    transactions = sorted(transactions, key=lambda x: x.date)
+        Transaction.date >= start_date,
+        Transaction.date <= end_date
+    ).order_by(desc(Transaction.date)).all()
 
     return transactions
