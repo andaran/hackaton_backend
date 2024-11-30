@@ -1,8 +1,9 @@
 from fastapi import FastAPI, HTTPException, Depends
 from sqlalchemy.orm import Session
-from models import User
-from database import get_db
-from schemas import UserCreate, UserLogin
+from sqlalchemy import MetaData, inspect
+from models import User, get_user_transaction_table
+from database import get_db, engine
+from schemas import UserCreate, UserLogin, TransactionCreate, TransactionOut
 import uvicorn
 
 app = FastAPI()
@@ -12,7 +13,16 @@ async def login(user: UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.email == user.email, User.password == user.password).first()
     if db_user is None:
         raise HTTPException(status_code=401, detail="Incorrect email or password")
-    return {"message": "Login successful"}
+    
+    cleaned_user = {
+        "id": db_user.id,
+        "email": db_user.email,
+        "name": db_user.name
+    }
+    return {
+        "message": "Login successful",
+        "user": cleaned_user
+    }
 
 @app.post("/register/")
 async def register(user: UserCreate, db: Session = Depends(get_db)):
@@ -24,6 +34,50 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
     db.add(new_user)
     db.commit()
     return {"message": "User registered successfully"}
+
+@app.post("/transactions/{user_id}/", response_model=TransactionOut)
+async def add_transaction(user_id: str, transaction: TransactionCreate, db: Session = Depends(get_db)):
+    metadata = MetaData()
+    Transaction = get_user_transaction_table(user_id, metadata)
+
+    # Проверка существования пользователя
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Валидация типа транзакции
+    if transaction.type not in ["income", "expense"]:
+        raise HTTPException(status_code=400, detail="Invalid transaction type")
+
+    # Создание таблицы, если она не существует
+    if not inspect(engine).has_table(Transaction.__tablename__):
+        Transaction.__table__.create(bind=engine)
+
+    # Добавляем транзакцию в таблицу
+    db_transaction = Transaction(
+        date=transaction.date,
+        type=transaction.type,
+        category=transaction.category,
+        place=transaction.place,
+        amount=transaction.amount,
+        description=transaction.description
+    )
+    db.add(db_transaction)
+    db.commit()
+    db.refresh(db_transaction)
+    return db_transaction
+
+@app.get("/transactions/{user_id}/", response_model=list[TransactionOut])
+async def get_transactions(user_id: str, db: Session = Depends(get_db)):
+    metadata = MetaData()
+    Transaction = get_user_transaction_table(user_id, metadata)
+
+    # Если таблица не существует, то возвращаем ошибку
+    if not inspect(engine).has_table(Transaction.__tablename__):
+        raise HTTPException(status_code=404, detail="No transactions found for this user")
+
+    transactions = db.query(Transaction).all()
+    return transactions
 
 if __name__ == "__main__":
     uvicorn.run(app, port=8000)
